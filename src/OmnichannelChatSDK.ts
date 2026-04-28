@@ -1789,6 +1789,94 @@ class OmnichannelChatSDK {
         }
     }
 
+    /**
+     * Fetches unread message count for the authenticated user.
+     * Auth-only — does not require an active chat session.
+     */
+    public async getUnreadMessageCount(): Promise<object> {
+        const telemetryData = {
+            RequestId: this.requestId || ""
+        };
+
+        this.scenarioMarker.startScenario(TelemetryEvent.GetUnreadMessageCount, telemetryData);
+
+        if (!this.authenticatedUserToken) {
+            exceptionThrowers.throwChatSDKError(
+                ChatSDKErrorName.UndefinedAuthToken,
+                undefined,
+                this.scenarioMarker,
+                TelemetryEvent.GetUnreadMessageCount,
+                telemetryData,
+                "getUnreadMessageCount is only supported for authenticated chats"
+            );
+        }
+
+        try {
+            const result = await this.OCClient.getUnreadMessageCount(this.authenticatedUserToken);
+
+            this.scenarioMarker.completeScenario(TelemetryEvent.GetUnreadMessageCount, telemetryData);
+            return result;
+        } catch (error) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const statusCode = (error as any)?.response?.status;
+            if (statusCode === 404) {
+                exceptionThrowers.throwInvalidConversation(this.scenarioMarker, TelemetryEvent.GetUnreadMessageCount, telemetryData);
+            }
+            exceptionThrowers.throwUnreadMessageCountRetrievalFailure(error, this.scenarioMarker, TelemetryEvent.GetUnreadMessageCount, telemetryData);
+        }
+
+        // Unreachable — throwUnreadMessageCountRetrievalFailure always throws.
+        // Required for TypeScript return type satisfaction.
+        return {};
+    }
+
+    /**
+     * Sends a read receipt for a specific message.
+     * Authenticated: calls MRT (updates NRD + forwards to ACS).
+     * Unauthenticated: calls ACS directly.
+     */
+    public async sendReadReceipt(messageId: string): Promise<void> {
+        const telemetryData = {
+            RequestId: this.requestId,
+            ChatId: this.chatToken?.chatId as string || ""
+        };
+
+        this.scenarioMarker.startScenario(TelemetryEvent.SendReadReceipt, telemetryData);
+
+        if (!this.isInitialized) {
+            exceptionThrowers.throwUninitializedChatSDK(this.scenarioMarker, TelemetryEvent.SendReadReceipt);
+        }
+
+        if (!messageId) {
+            exceptionThrowers.throwSendReadReceiptInvalidParams(this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
+        }
+
+        try {
+            if (this.authenticatedUserToken) {
+                // Authenticated: call MRT which updates NRD and forwards to ACS
+                await this.OCClient.sendReadReceipt(this.requestId, messageId, this.authenticatedUserToken);
+            } else {
+                // Unauthenticated: call ACS directly (no MRT, no NRD)
+                if (!this.conversation) {
+                    exceptionThrowers.throwUninitializedChatSDK(this.scenarioMarker, TelemetryEvent.SendReadReceipt);
+                }
+                await (this.conversation as ACSConversation).sendReadReceipt(messageId);
+            }
+
+            this.scenarioMarker.completeScenario(TelemetryEvent.SendReadReceipt, telemetryData);
+        } catch (error) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const statusCode = (error as any)?.response?.status;
+            if (statusCode === 404) {
+                exceptionThrowers.throwInvalidConversation(this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
+            }
+            if (statusCode === 400) {
+                exceptionThrowers.throwSendReadReceiptInvalidParams(this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
+            }
+            exceptionThrowers.throwSendReadReceiptFailure(error, this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
+        }
+    }
+
     public async onTypingEvent(onTypingEventCallback: CallableFunction): Promise<void> {
         this.scenarioMarker.startScenario(TelemetryEvent.OnTypingEvent, {
             RequestId: this.requestId,
