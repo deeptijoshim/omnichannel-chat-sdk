@@ -1820,7 +1820,7 @@ class OmnichannelChatSDK {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const statusCode = (error as any)?.response?.status;
             if (statusCode === 404) {
-                exceptionThrowers.throwInvalidConversation(this.scenarioMarker, TelemetryEvent.GetUnreadMessageCount, telemetryData);
+                exceptionThrowers.throwChatSDKError(ChatSDKErrorName.InvalidConversation, error, this.scenarioMarker, TelemetryEvent.GetUnreadMessageCount, telemetryData, "Conversation not found");
             }
             exceptionThrowers.throwUnreadMessageCountRetrievalFailure(error, this.scenarioMarker, TelemetryEvent.GetUnreadMessageCount, telemetryData);
         }
@@ -1868,10 +1868,10 @@ class OmnichannelChatSDK {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const statusCode = (error as any)?.response?.status;
             if (statusCode === 404) {
-                exceptionThrowers.throwInvalidConversation(this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
+                exceptionThrowers.throwChatSDKError(ChatSDKErrorName.InvalidConversation, error, this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData, "Conversation not found");
             }
             if (statusCode === 400) {
-                exceptionThrowers.throwSendReadReceiptInvalidParams(this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
+                exceptionThrowers.throwChatSDKError(ChatSDKErrorName.SendReadReceiptInvalidParams, error, this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData, "Invalid parameters");
             }
             exceptionThrowers.throwSendReadReceiptFailure(error, this.scenarioMarker, TelemetryEvent.SendReadReceipt, telemetryData);
         }
