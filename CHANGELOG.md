@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Added `onStreamingMessage` public API for progressive bot message rendering via ACS streaming
+- Added `OmnichannelStreamingMessage`, `StreamingMetadata`, `PolicyViolation`, `OnStreamingMessageOptionalParams` exported types
+- Added streaming message telemetry events: `StreamingMessageReceived`, `StreamingDuplicateFinal`, `StreamingChunkNoContent`, `StreamingChunkAfterFinal`, `StreamingPolicyViolation`, `StreamingMetadataMissingType`, `StreamingFinalMissingReason`, `StreamingCounterEvicted`, `StreamingHandlerThrew`, `StreamingHandlerAsyncRejected`
+- Added `StreamingMessagePrinter` for structured telemetry logging of streaming events
+- Added duplicate final detection and LRU-bounded sequence counter management in `createOmnichannelStreamingMessage`
+
+### Fixed
+
+- Fixed streaming final messages not delivered to `onStreamingMessage` when ACS sends them as `chatMessageReceived` (event 200) instead of `streamingChatMessageChunkReceived` (event 251)
+- Fixed `streamingMessageType` never being `"start"` — ACS sends `"streaming"` for start events; SDK now overrides to `"start"` based on event name
+- Backward compatibility: `onNewMessage` always fires for the final complete message alongside `onStreamingMessage`, ensuring existing consumers are unaffected
+
+### Added
+
 - Added `getUnreadMessageCount` public method to fetch unread message count for authenticated users (auth-only, pre-session badge use case)
 - Added `sendReadReceipt` public method to mark messages as read (authenticated: via MRT, unauthenticated: via ACS directly)
 - Added `sendReadReceipt` to `ACSClient` for direct ACS read receipt delivery (unauthenticated path)
